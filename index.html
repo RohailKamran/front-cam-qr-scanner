@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    #loader { display: none; font-size: 24px; }
+    #result { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <button id="startBtn">Start Camera</button>
+  <div id="loader">⌛ Processing...</div>
+  <div id="result"></div>
+  <video id="video" width="300" style="display:none;"></video>
+
+  <script>
+    const startBtn = document.getElementById('startBtn');
+    const video = document.getElementById('video');
+    const loader = document.getElementById('loader');
+    const resultDiv = document.getElementById('result');
+
+    startBtn.addEventListener('click', async () => {
+      try {
+        // Check if BarcodeDetector is supported
+        if (!('BarcodeDetector' in window)) {
+          throw new Error('BarcodeDetector not supported in this browser');
+        }
+
+        // Get front camera (facingMode: 'user')
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user' }
+        });
+        
+        video.srcObject = stream;
+        video.style.display = 'block';
+        await video.play();
+        
+        const detector = new BarcodeDetector({ formats: ['qr_code'] });
+        detectQR(detector);
+        
+      } catch (err) {
+        resultDiv.textContent = `Error: ${err.message}`;
+      }
+    });
+
+    async function detectQR(detector) {
+      try {
+        const barcodes = await detector.detect(video);
+        if (barcodes.length > 0) {
+          // QR Found!
+          video.style.display = 'none';
+          loader.style.display = 'block';
+          
+          const qrData = barcodes[0].rawValue;
+          console.log('Scanned Data:', qrData);
+          
+          // Simulate processing delay
+          setTimeout(() => {
+            loader.style.display = 'none';
+            resultDiv.textContent = `Scanned: ${qrData}`;
+          }, 1500);
+        } else {
+          // Continue scanning
+          requestAnimationFrame(() => detectQR(detector));
+        }
+      } catch (err) {
+        console.error('Detection error:', err);
+      }
+    }
+  </script>
+</body>
+</html>
